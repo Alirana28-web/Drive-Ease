@@ -3,47 +3,62 @@ const mongoose = require("mongoose");
 const Signup = require("./Login/Signup");
 const bcrypt = require("bcrypt");
 
-const createAdmin = async () => {
+const resetAdminPassword = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    
-    const existingAdmin = await Signup.findOne({ email: "alimahmoodrana82@gmail.com" });
-    
+    console.log("Connected to MongoDB");
+
+    const adminEmail = "alimahmoodrana82@gmail.com";
+    const adminPassword = "AliRana28!";
+    const adminName = "Ali Mahmood";
+
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    const existingAdmin = await Signup.findOne({ email: adminEmail });
+
     if (existingAdmin) {
-      if (existingAdmin.role !== "admin") {
-        await Signup.updateOne(
-          { email: "alimahmoodrana82@gmail.com" },
-          { $set: { role: "admin" } }
-        );
-        console.log("Admin role updated!");
-      } else {
-        console.log("Admin already exists with correct role!");
-      }
-    } else {
-      const hashedPassword = await bcrypt.hash("AliRana28!", 10);
-      
-      const admin = new Signup({
-        name: "Ali Mahmood",
-        email: "alimahmoodrana82@gmail.com",
+      await Signup.updateOne(
+        { email: adminEmail },
+        {
+          $set: {
+            password: hashedPassword,
+            role: "admin",
+            name: adminName
+          }
+        }
+      );
+      console.log("Admin credentials updated successfully!");
+
+      // Verify update
+      const updatedAdmin = await Signup.findOne({ email: adminEmail });
+      console.log("Updated Admin Details:", {
+        email: updatedAdmin.email,
+        role: updatedAdmin.role,
+        name: updatedAdmin.name
+      });
+
+      const passwordMatch = await bcrypt.compare(adminPassword, updatedAdmin.password);
+      console.log("Password verification:", passwordMatch ? "Success" : "Failed");
+    }
+     else {
+      const newAdmin = new Signup({
+        name: adminName,
+        email: adminEmail,
         password: hashedPassword,
         role: "admin"
       });
-      
-      await admin.save();
-      console.log("Admin user created successfully!");
+
+      await newAdmin.save();
+      console.log("New admin account created successfully!");
     }
-    
-    const verifyAdmin = await Signup.findOne({ email: "alimahmoodrana82@gmail.com" });
-    console.log("Admin verification:", {
-      email: verifyAdmin.email,
-      role: verifyAdmin.role
-    });
-    
+
   } catch (error) {
-    console.error("Error in admin creation/verification:", error);
+    console.error("Error in admin reset:", error);
   } finally {
     await mongoose.connection.close();
+    console.log("MongoDB connection closed");
   }
 };
 
-createAdmin();
+// Run the reset
+resetAdminPassword();

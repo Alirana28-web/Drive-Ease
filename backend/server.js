@@ -11,6 +11,7 @@ const carsRoutes = require("./routes/cars");
 const contactRoutes = require("./routes/contact");
 const authRoutes = require("./routes/auth");
 const admin = require("./routes/Admin")
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -19,7 +20,9 @@ app.use(cors({
   methods: "GET, POST, DELETE, PUT",
   credentials: true,
 }));
-app.use(express.static(path.join(__dirname, "build")));
+
+const _dirname = path.resolve();
+app.use(express.static(path.join(_dirname, "/frontend/dist")));
 
 
 //routes
@@ -27,7 +30,12 @@ app.post("/details", carsRoutes);
 app.get("/details", carsRoutes);
 
 app.post("/contact", contactRoutes);
+
 app.post("/login", authRoutes);
+app.post("/signup", authRoutes);
+
+app.get("/signup", authRoutes);
+
 
 app.get("/admin", admin);
 

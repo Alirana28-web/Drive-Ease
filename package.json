@@ -9,6 +9,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "framer-motion": "^11.15.0",
+    "googleapis": "^144.0.0",
     "lenis": "^1.1.18",
     "locomotive-scroll": "^4.1.4",
     "lodash": "^4.17.21",

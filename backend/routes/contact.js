@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Contact = require("../models/Contact");
+const Contact = require("../Schemas/Contact");
 
 router.post("/", async (req, res) => {
   const { name, email, phone, message } = req.body;

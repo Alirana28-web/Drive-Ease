@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Car, RefreshCcw, X, LogOut, RefreshCw } from "lucide-react";
+import { Calendar, Car, RefreshCcw, X, LogOut, RefreshCw, Hourglass } from "lucide-react";
 import { MdEmail } from "react-icons/md";
 import { BsPerson } from "react-icons/bs";
 import { RentContext } from "../Context/Context";
 import { useNavigate } from "react-router-dom";
+import { BiMoney } from "react-icons/bi";
+import { TbHours24 } from "react-icons/tb";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ const Admin = () => {
       try {
         const token = localStorage.getItem("token");
         const role = localStorage.getItem("role");
-
+    
         if (!token || !login || role !== "admin") {
           setlogin(false);
           localStorage.removeItem("token");
@@ -30,14 +32,15 @@ const Admin = () => {
           navigate("/login");
           return;
         }
-
-        // Set auth header for all future requests
+    
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        fetchData(); 
       } catch (error) {
         console.error("Auth check failed:", error);
         navigate("/login");
       }
     };
+    
 
     checkAuth();
   }, [login, navigate, setlogin]);
@@ -49,7 +52,7 @@ const Admin = () => {
         axios.get("http://localhost:5000/details", {
           withCredentials: true
         }),
-        axios.get("http://localhost:5000/admin", {
+        axios.get("http://localhost:5000/signup", {
           withCredentials: true
         })
       ]);
@@ -187,6 +190,14 @@ const CarsList = ({ data }) => (
               <div className="flex items-center space-x-2">
                 <MdEmail className="text-indigo-600" size={20} />
                 <span>{item.renterEmail}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <BiMoney className="text-indigo-600" size={20} />
+                <span>{item.totalRent}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <TbHours24 className="text-indigo-600" size={20} />
+                <span>{item.totalHours}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Car className="text-indigo-600" size={20} />

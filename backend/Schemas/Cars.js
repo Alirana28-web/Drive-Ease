@@ -32,6 +32,7 @@ const carSchema = new mongoose.Schema({
     type : Number,
     required : true
   },
+
   rented: {
     type: Boolean,
     default: false,

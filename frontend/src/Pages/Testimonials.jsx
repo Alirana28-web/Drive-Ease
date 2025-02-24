@@ -148,7 +148,7 @@ const Testimonials = () => {
             Join thousands of satisfied customers who trust our service
           </p>
           <button className="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-           <Link to='listing'>
+           <Link to='listings'>
            Start Your Journey
            </Link> 
           </button>

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Cars = require("../models/Cars");
+const Cars = require("../Schemas/Cars");
 const sendConfirmationEmail = require("../email");
 
 // Car Details

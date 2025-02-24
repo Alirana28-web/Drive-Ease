@@ -14,11 +14,10 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    // Add debug logging
     console.log("Login attempt for email:", email);
-    
-    const user = await Signup.findOne({ email }).select('+password +role');
-    
+
+    const user = await Signup.findOne({ email }).select("+password");
+
     if (!user) {
       console.log("User not found for email:", email);
       return res.status(404).json({ error: "User not found" });
@@ -27,11 +26,20 @@ router.post("/login", async (req, res) => {
     console.log("User found:", {
       email: user.email,
       role: user.role,
-      hasPassword: !!user.password
+      passwordExists: !!user.password,
+      passwordLength: user.password ? user.password.length : 0
     });
 
+    // Check if password exists before comparison
+    if (!user.password) {
+      console.log("No password stored for user:", email);
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
-    
+    console.log("Password comparison result:", isMatch);
+
     if (!isMatch) {
       console.log("Password mismatch for email:", email);
       return res.status(401).json({ error: "Invalid credentials" });
@@ -40,27 +48,58 @@ router.post("/login", async (req, res) => {
     const role = user.role || "user";
     console.log("Assigned role:", role);
 
+    // session ID for this specific login
+    const sessionId = require('crypto').randomBytes(32).toString('hex');
+
     const token = jwt.sign(
-      { 
-        id: user._id, 
+      {
+        id: user._id,
         role,
-        email: user.email 
-      }, 
-      jwtSecret, 
+        email: user.email,
+        sessionId 
+      },
+      process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    // cookie
+    // multiple cookies 
     res.cookie("jwtoken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', 
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      expires: new Date(Date.now() + 3600000),
+      path: '/'
+    });
+
+    // user-specific cookie
+    res.cookie(`session_${user._id}`, sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       expires: new Date(Date.now() + 3600000), 
+      path: '/'
+    });
+
+    // user data cookie (non-sensitive info only)
+    const userData = {
+      id: user._id,
+      email: user.email,
+      role: role,
+      lastLogin: new Date().toISOString()
+    };
+
+    res.cookie(`userdata_${user._id}`, JSON.stringify(userData), {
+      httpOnly: false, //JavaScript access
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      expires: new Date(Date.now() + 3600000),
+      path: '/'
     });
 
     res.status(200).json({
       message: "Login successful",
       token,
+      sessionId,
       user: {
         id: user._id,
         name: user.name,
@@ -69,12 +108,15 @@ router.post("/login", async (req, res) => {
       }
     });
 
+    console.log("Generated Token:", token);
+    console.log("Stored Cookies:", req.cookies);
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Login failed due to a server error" });
   }
 });
-// User Signup
+
 router.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -100,4 +142,13 @@ router.post("/signup", async (req, res) => {
     }
 });
 
+router.get("/signup", async (req, res) => {
+  try {
+    const users = await Signup.find();
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
 module.exports = router;
