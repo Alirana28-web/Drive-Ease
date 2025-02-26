@@ -10,37 +10,34 @@ const app = express();
 const carsRoutes = require("./routes/cars");
 const contactRoutes = require("./routes/contact");
 const authRoutes = require("./routes/auth");
-const admin = require("./routes/Admin")
+const admin = require("./routes/Admin");
 
-// Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: "http://localhost:5173",
+
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || true
+    : "http://localhost:5173",
   methods: "GET, POST, DELETE, PUT",
   credentials: true,
-}));
+};
+app.use(cors(corsOptions));
+
+app.post("/details", carsRoutes);
+app.get("/details", carsRoutes);
+app.post("/contact", contactRoutes);
+app.post("/login", authRoutes);
+app.post("/signup", authRoutes);
+app.get("/signup", authRoutes);
+app.get("/admin", admin);
 
 const _dirname = path.resolve();
 app.use(express.static(path.join(_dirname, "/frontend/dist")));
 
-
-//routes
-app.post("/details", carsRoutes);
-app.get("/details", carsRoutes);
-
-app.post("/contact", contactRoutes);
-
-app.post("/login", authRoutes);
-app.post("/signup", authRoutes);
-
-app.get("/signup", authRoutes);
-
-
-app.get("/admin", admin);
-
+// Handle all other routes by serving the React app
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
+  res.sendFile(path.resolve(_dirname, "frontend", "dist", "index.html"));
 });
 
 mongoose
@@ -50,5 +47,5 @@ mongoose
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });

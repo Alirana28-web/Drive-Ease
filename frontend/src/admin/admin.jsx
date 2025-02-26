@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Car, RefreshCcw, X, LogOut, RefreshCw, Hourglass } from "lucide-react";
+import { Calendar, Car, RefreshCcw, X, LogOut, RefreshCw } from "lucide-react";
 import { MdEmail } from "react-icons/md";
 import { BsPerson } from "react-icons/bs";
 import { RentContext } from "../Context/Context";

@@ -15,6 +15,7 @@ import {
   BsFuelPump, 
   BsSpeedometer2 
 } from 'react-icons/bs';
+import { Navigate } from 'react-router-dom';
 
 const Carlisting = () => {
   const { rentDetails, setRentDetails, totalrent, settotalrent, setcartotal , login } = useContext(RentContext);
@@ -74,8 +75,8 @@ const Carlisting = () => {
       });
     }
     else{
-      window.location.href = "/login"
       toast.info("Login first to rent")
+      Navigate("/login")
     }
       
   }

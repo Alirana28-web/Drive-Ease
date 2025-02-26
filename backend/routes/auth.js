@@ -26,19 +26,11 @@ router.post("/login", async (req, res) => {
     console.log("User found:", {
       email: user.email,
       role: user.role,
-      passwordExists: !!user.password,
-      passwordLength: user.password ? user.password.length : 0
+      hasPassword: !!user.password
     });
-
-    // Check if password exists before comparison
-    if (!user.password) {
-      console.log("No password stored for user:", email);
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    // Compare passwords
+    
+    // comparison
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("Password comparison result:", isMatch);
 
     if (!isMatch) {
       console.log("Password mismatch for email:", email);
@@ -108,8 +100,6 @@ router.post("/login", async (req, res) => {
       }
     });
 
-    console.log("Generated Token:", token);
-    console.log("Stored Cookies:", req.cookies);
 
   } catch (error) {
     console.error("Login error:", error);
