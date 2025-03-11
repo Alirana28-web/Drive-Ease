@@ -1,121 +1,130 @@
-import { useState } from 'react';
-import { toast } from 'react-toastify';
-import { useRentTimer } from './useRentTimer';
+import { useState, useEffect, useRef } from "react";
+import { toast } from "react-toastify";
 
-export const useRentManagement = (rentDetails, setRentDetails, totalrent, settotalrent) => {
+export const useRentManagement = (initialRentDetails, setRentDetails, totalrent, settotalrent) => {
+  const [address, setaddress] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState(null);
   const [selectedHours, setSelectedHours] = useState(1);
   const [renterName, setRenterName] = useState("");
   const [renterEmail, setRenterEmail] = useState("");
-  
-  
-  const handleDelete = (index, auto = false) => {
-    const carToRemove = rentDetails[index];
-    const updatedRentDetails = rentDetails.filter((_, i) => i !== index);
-    const updatedTotalRent = totalrent - (carToRemove.totalRent || carToRemove.hourlyPrice);
-    
-    setRentDetails(updatedRentDetails);
-    settotalrent(updatedTotalRent);
 
-    localStorage.setItem('rentDetails', JSON.stringify(updatedRentDetails));
-    localStorage.setItem('rent', JSON.stringify(updatedTotalRent));
+  const initialRentDetailsRef = useRef(initialRentDetails);
 
-    if (!auto) {
-      toast.success(`${carToRemove.name} removed from rent details!`);
-    }
+  const loadRentDetails = () => {
+    const storedDetails = localStorage.getItem("rentDetails");
+    return storedDetails ? JSON.parse(storedDetails) : initialRentDetailsRef.current;
   };
 
-  const timeLeft = useRentTimer(rentDetails, handleDelete);
-  
+  const saveRentDetails = (details) => {
+    localStorage.setItem("rentDetails", JSON.stringify(details));
+  };
+
+  const calculateTotalRent = (details) => {
+    let newTotal = 0;
+    details.forEach((car) => {
+      if (car.rented && car.hours) {
+        newTotal += car.hourlyPrice * car.hours;
+      }
+    });
+    settotalrent(newTotal);
+    localStorage.setItem("totalrent", JSON.stringify(newTotal));
+  };
+
+  useEffect(() => {
+    if (initialRentDetails !== initialRentDetailsRef.current) {
+        initialRentDetailsRef.current = initialRentDetails;
+    }
+    const details = loadRentDetails();
+    calculateTotalRent(details);
+  }, [initialRentDetails]);
+
+  //delete
+  const handleDelete = (index) => {
+    const details = loadRentDetails();
+    const deletedCar = details[index];
+    const deletedCarPrice = deletedCar.hourlyPrice * (deletedCar.hours || 0);
+
+    const updatedDetails = details.filter((_, i) => i !== index);
+    setRentDetails(updatedDetails);
+    saveRentDetails(updatedDetails);
+    calculateTotalRent(updatedDetails);
+    
+    toast.success("Item removed successfully!");
+  };
+
+  //proceed
   const handleProceed = (car) => {
     setSelectedCar(car);
     setIsModalOpen(true);
   };
 
+  //confirm
   const handleConfirm = async () => {
-    if (!renterEmail) {
-      toast.error("Please enter your email.");
+    if (!renterName || !renterEmail || !selectedHours) {
+      toast.error("Please fill all fields");
       return;
     }
 
-    if (!renterName) {
-      toast.error("Please enter your name.");
+    if (!/\S+@\S+\.\S+/.test(renterEmail)) {
+      toast.error("Please enter a valid email");
       return;
     }
 
-    const calculatedRent = selectedCar.hourlyPrice * selectedHours;
-
-    if (selectedCar.rented) {
-      toast.error("This car has already been rented.");
-      return;
-    }
-
-    const updatedDetails = rentDetails.map((car) =>
-      car.name === selectedCar.name
-        ? {
-            ...car,
-            rented: true,
-            rentedAt: new Date(),
-            hours: selectedHours,
-            totalRent: calculatedRent,
-          }
-        : car
-    );
+    const hours = Number(selectedHours);
+    const calculatedRent = selectedCar.hourlyPrice * hours;
 
     const rentalData = {
+      car: selectedCar,
       renterEmail,
       renterName,
-      car: {
-        name: selectedCar.name,
-        hourlyPrice: selectedCar.hourlyPrice,
-        description: selectedCar.description,
-        imageUrl: selectedCar.imageUrl,
-        category: selectedCar.category,
-      },
+      address,
       totalRent: calculatedRent,
-      totalHours: selectedHours,
+      totalHours: hours,
     };
 
     try {
       const response = await fetch("http://localhost:5000/details", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(rentalData),
       });
 
-      if (response.ok) {
+      if (response.status === 201) {
+        const details = loadRentDetails();
+        const updatedDetails = details.map((item) =>
+          item._id === selectedCar._id ? { ...item, rented: true, hours } : item
+        );
+
         setRentDetails(updatedDetails);
-        settotalrent((prevTotal) => prevTotal + calculatedRent);
+        saveRentDetails(updatedDetails);
+        calculateTotalRent(updatedDetails);
 
-        localStorage.setItem('rentDetails', JSON.stringify(updatedDetails));
-        localStorage.setItem('rent', JSON.stringify(totalrent + calculatedRent));
-
-        toast.success(`${selectedCar.name} rented successfully for Rs ${calculatedRent}! Check your email for confirmation.`);
+        setIsModalOpen(false);
+        toast.success("Rental request submitted successfully!");
       } else {
-        toast.error("Error renting the car.");
+        toast.error("Failed to submit rental request.");
       }
     } catch (error) {
-      toast.error("Failed to rent.");
+      console.error("Error submitting rental request:", error);
+      toast.error("Failed to submit rental request.");
     }
-
-    setIsModalOpen(false);
   };
 
   return {
     isModalOpen,
-    setIsModalOpen,
     selectedCar,
     selectedHours,
     setSelectedHours,
+    address,
+    setaddress,
     renterName,
     setRenterName,
     renterEmail,
     setRenterEmail,
     handleDelete,
     handleProceed,
-    handleConfirm
+    handleConfirm,
+    setIsModalOpen,
   };
 };

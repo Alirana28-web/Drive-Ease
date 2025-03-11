@@ -1,10 +1,11 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { RentContext } from "../Context/Context";
 import { motion, AnimatePresence } from "framer-motion";
 import { BiLogOutCircle, BiTimeFive, BiCar, BiDollar, BiTrash } from "react-icons/bi";
-import { FaCheckCircle, FaHourglassHalf } from "react-icons/fa";
+import { FaCheckCircle, FaHourglassHalf, FaTimesCircle } from "react-icons/fa";
+import { MdPending } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { useRentTimer } from '../Hooks/useRentTimer';
 import { useRentManagement } from '../Hooks/useRentManagement';
@@ -19,6 +20,8 @@ const RentDetails = () => {
     selectedHours,
     setSelectedHours,
     renterName,
+    address,
+    setaddress,
     setRenterName,
     renterEmail,
     setRenterEmail,
@@ -45,6 +48,7 @@ const RentDetails = () => {
       transition: { duration: 0.5 }
     }
   };
+  
 
   return (
     <div id="details" className="bg-gray-100 min-h-screen">
@@ -74,7 +78,7 @@ const RentDetails = () => {
 
         <motion.div variants={itemVariants} className="mb-5">
           <span className="font-bold">Note : </span>
-          <span>Your renting offer will be expired in 24 hours after confirmation</span>
+          <span>Your renting request will be pending until approved by an administrator. Once approved, your rental will be valid for 24 hours.</span>
         </motion.div>
 
         <AnimatePresence>
@@ -95,6 +99,8 @@ const RentDetails = () => {
         <RentModal 
           isOpen={isModalOpen}
           selectedCar={selectedCar}
+          address={address}
+          setaddress={setaddress}
           selectedHours={selectedHours}
           setSelectedHours={setSelectedHours}
           renterName={renterName}
@@ -124,46 +130,99 @@ const RentList = ({ rentDetails, handleDelete, handleProceed, timeLeft, itemVari
   </motion.ul>
 );
 
-const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, itemVariants }) => (
-  <motion.div
-    className="bg-white p-6 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row items-center"
-    variants={itemVariants}
-    initial="hidden"
-    animate="visible"
-    exit={{ opacity: 0, y: -20 }}
-  >
-    <div className="flex items-center sm:w-1/3">
-      <img src={car.imageUrl} alt={car.name} className="w-full h-30 sm:w-96 px-14 rounded-lg object-cover" />
-    </div>
-    <div className="sm:w-2/3 mt-4 sm:mt-0 sm:ml-6">
-      <h3 className="text-lg font-bold flex items-center gap-2">
-        <BiCar className="text-blue-600" /> {car.name}
-      </h3>
-      <p className="text-sm text-gray-600 mb-2">{car.description} {car.category}</p>
-
-      <div className="flex flex-wrap gap-4 mt-4">
-        <p className="text-lg font-semibold text-blue-700 flex items-center gap-2">
-          <BiDollar /> Hourly Rate: Rs {car.hourlyPrice}
-        </p>
-        {car.hours && (
-          <>
-            <p className="text-lg font-semibold text-green-700 flex items-center gap-2">
-              <FaHourglassHalf /> Hours: {car.hours}
-            </p>
-            <p className="text-lg font-bold text-indigo-700 flex items-center gap-2">
-              <BiDollar /> Total: Rs {car.hourlyPrice * car.hours}
-            </p>
-          </>
-        )}
-      </div>
-
-      {car.rented && timeRemaining && (
-        <div className="mt-4 text-sm text-gray-600">
-          Time remaining: {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
+const StatusBadge = ({ status }) => {
+  switch (status) {
+    case "approved":
+      return (
+        <div className="flex items-center gap-1 text-green-600 bg-green-100 px-3 py-1 rounded-full">
+          <FaCheckCircle />
+          <span>Approved</span>
         </div>
-      )}
+      );
+    case "rejected":
+      return (
+        <div className="flex items-center gap-1 text-red-600 bg-red-100 px-3 py-1 rounded-full">
+          <FaTimesCircle />
+          <span>Rejected</span>
+        </div>
+      );
+    case "pending":
+    default:
+      return (
+        <div className="flex items-center gap-1 text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">
+          <MdPending />
+          <span>Pending</span>
+        </div>
+      );
+  }
+};
 
-      {!car.rented && (
+const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, itemVariants }) => {
+  // Determine if we should show rental timer
+  const showTimer = car.rented && car.status === "approved" && timeRemaining;
+  
+  // Determine if we should show rental actions
+  const showRentActions = !car.rented;
+  
+  // Check if car has been requested but not yet approved/rejected
+  const isPending = car.rented && car.status === "pending";
+
+  return (
+    <motion.div
+      className="bg-white p-6 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row items-center"
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      exit={{ opacity: 0, y: -20 }}
+    >
+      <div className="flex items-center sm:w-1/3">
+        <img src={car.imageUrl} alt={car.name} className="w-full h-30 sm:w-96 px-14 rounded-lg object-cover" />
+      </div>
+      <div className="sm:w-2/3 mt-4 sm:mt-0 sm:ml-6">
+        <div className="flex justify-between items-start">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <BiCar className="text-blue-600" /> {car.name}
+          </h3>
+          {car.rented && (
+            <StatusBadge status={car.status || "pending"} />
+          )}
+        </div>
+        <p className="text-sm text-gray-600 mb-2">{car.description} {car.category}</p>
+
+        <div className="flex flex-wrap gap-4 mt-4">
+          <p className="text-lg font-semibold text-blue-700 flex items-center gap-2">
+            <BiDollar /> Hourly Rate: Rs {car.hourlyPrice}
+          </p>
+          {car.hours && (
+            <>
+              <p className="text-lg font-semibold text-green-700 flex items-center gap-2">
+                <FaHourglassHalf /> Hours: {car.hours}
+              </p>
+              <p className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <BiDollar /> Total: Rs {car.hourlyPrice * car.hours}
+              </p>
+            </>
+          )}
+        </div>
+
+        {car.status === "rejected" && car.rejectionReason && (
+          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm">
+            <span className="font-semibold">Reason for rejection:</span> {car.rejectionReason}
+          </div>
+        )}
+
+        {isPending && (
+          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+            <span className="font-semibold">Status:</span> Your rental request is pending approval
+          </div>
+        )}
+
+        {showTimer && (
+          <div className="mt-4 text-sm text-gray-600">
+            Time remaining: {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -173,22 +232,27 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
           >
             <BiTrash /> Delete
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2"
-            onClick={() => handleProceed(car)}
-          >
-            <BiTimeFive /> Rent Now
-          </motion.button>
+          
+          {showRentActions && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2"
+              onClick={() => handleProceed(car)}
+            >
+              <BiTimeFive /> Request Rental
+            </motion.button>
+          )}
         </div>
-      )}
-    </div>
-  </motion.div>
-);
+      </div>
+    </motion.div>
+  );
+};
 
 const RentModal = ({
   isOpen,
+  address,
+  setaddress,
   selectedCar,
   selectedHours,
   setSelectedHours,
@@ -212,7 +276,10 @@ const RentModal = ({
           animate={{ y: 0 }}
           exit={{ y: 100 }}
         >
-          <h3 className="text-xl font-semibold text-center">Confirm Rent for {selectedCar?.name}</h3>
+          <h3 className="text-xl font-semibold text-center">Request Rental for {selectedCar?.name}</h3>
+          <p className="text-center text-sm text-gray-600 mt-1">
+            Your request will need approval before the rental is confirmed
+          </p>
           <div className="flex flex-col mt-4 gap-4">
             <div>
               <label className="block text-sm">Name</label>
@@ -235,6 +302,16 @@ const RentModal = ({
               />
             </div>
             <div>
+              <label className="block text-sm">Address</label>
+              <input
+                type="text"
+                value={address}
+                placeholder="123 park city ,lahore"
+                onChange={(e) => setaddress(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
               <label className="block text-sm">Select Hours</label>
               <input
                 type="number"
@@ -251,7 +328,7 @@ const RentModal = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Confirm Rent
+              Submit Request
             </motion.button>
           </div>
         </motion.div>

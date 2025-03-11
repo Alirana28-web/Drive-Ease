@@ -29,7 +29,6 @@ const resetAdminPassword = async () => {
       );
       console.log("Admin credentials updated successfully!");
 
-      // Verify update
       const updatedAdmin = await Signup.findOne({ email: adminEmail });
       console.log("Updated Admin Details:", {
         email: updatedAdmin.email,

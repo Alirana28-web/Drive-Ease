@@ -4,7 +4,7 @@ const Cars = require("../Schemas/Cars");
 const Signup = require("../Login/Signup");
 
 // Get all cars
-router.get("/admin", async (req, res) => {
+router.get("/details", async (req, res) => {
   try {
     const cars = await Cars.find();
     
@@ -29,6 +29,7 @@ router.get("/admin", async (req, res) => {
     });
   }
 });
+
 
 router.get("/signup", async (req, res) => {
   try {

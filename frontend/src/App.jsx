@@ -8,15 +8,13 @@ import Pricing from "./Pages/Pricing";
 import Testimonials from "./Pages/Testimonials";
 import Contact from "./Pages/Contact";
 import Footer from "./components/Footer";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import  RentDetails  from "./components/RentDetails";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import  RentDetails  from "./pages/RentDetails";
 import { useEffect } from "react";
 import Lenis from "@studio-freight/lenis";
 import Login from "./Login/Login";
 import Signup from "./Login/Signup";
 import Admin from "./admin/admin";
-import Payment from "./components/Payment";
-import Cancel from "./components/Cancel";
 
 function App() {
   useEffect(() => {
@@ -45,8 +43,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/cancel" element={<Cancel />} />
           </Routes>
 
         <Routes>

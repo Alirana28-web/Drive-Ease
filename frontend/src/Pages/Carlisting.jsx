@@ -193,7 +193,7 @@ const Carlisting = () => {
                     <img
                       src={car.imageUrl}
                       alt={car.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full p-10 h-48 object-cover"
                     />
                     <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md">
                       <div className="flex items-center gap-1">

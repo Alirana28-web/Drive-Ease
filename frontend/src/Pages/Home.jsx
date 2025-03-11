@@ -1,23 +1,75 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   FiArrowRight, 
   FiPhone, 
   FiMapPin, 
   FiClock, 
   FiStar,
-  FiCheck 
+  FiCheck,
+  FiChevronLeft,
+  FiChevronRight
 } from "react-icons/fi";
 import { 
   BsFillCarFrontFill, 
   BsShieldCheck, 
   BsCreditCard2Back,
-  BsSpeedometer 
+  BsSpeedometer,
+  BsFuelPump,
+  BsGeoAlt,
+  BsCalendar4Week
 } from "react-icons/bs";
 import Carimg from "/public/Carbg.jpg";
 import { Link } from "react-scroll";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Home = () => {
+  // Feature slider state
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Features
+  const featureSlides = [
+    {
+      title: "Premium Fleet",
+      description: "Choose from our extensive collection of luxury vehicles for any occasion",
+      icon: <BsFillCarFrontFill className="text-4xl" />,
+      bgColor: "from-blue-600 to-blue-800"
+    },
+    {
+      title: "Flexible Rental",
+      description: "Daily, weekly, or monthly plans with competitive pricing options",
+      icon: <BsCalendar4Week className="text-4xl" />,
+      bgColor: "from-purple-600 to-purple-800"
+    },
+    {
+      title: "Nationwide Coverage",
+      description: "Pick up and drop off at any of our convenient locations across the country",
+      icon: <BsGeoAlt className="text-4xl" />,
+      bgColor: "from-green-600 to-green-800"
+    },
+    {
+      title: "Full Insurance",
+      description: "Drive with complete peace of mind with our comprehensive insurance coverage",
+      icon: <BsShieldCheck className="text-4xl" />,
+      bgColor: "from-red-600 to-red-800"
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % featureSlides.length);
+    }, 3000);
+    
+    return () => clearInterval(timer);
+  }, [featureSlides.length]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % featureSlides.length);
+  };
+  
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + featureSlides.length) % featureSlides.length);
+  };
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -27,23 +79,7 @@ const Home = () => {
     }
   };
 
-  const features = [
-    { 
-      icon: <BsFillCarFrontFill className="text-3xl" />, 
-      text: "Premium Cars",
-      description: "Luxury vehicles for every occasion" 
-    },
-    { 
-      icon: <BsShieldCheck className="text-3xl" />, 
-      text: "Full Insurance",
-      description: "Complete peace of mind" 
-    },
-    { 
-      icon: <BsCreditCard2Back className="text-3xl" />, 
-      text: "Easy Payment",
-      description: "Secure and flexible options" 
-    }
-  ];
+
 
   const highlights = [
     "24/7 Customer Support",
@@ -56,11 +92,12 @@ const Home = () => {
     <div className="bg-gradient-to-b from-white via-gray-50 to-white">
       <motion.div
         id="home"
-        className="container mx-auto px-4 py-20 min-h-screen"
+        className="container mx-auto px-4 py-10 min-h-screen"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true }}
       >
+       
         <div className="flex flex-col md:flex-row items-center gap-16">
           <div className="relative z-10 text-center md:text-left w-full md:w-1/2">
             <motion.div
@@ -118,6 +155,9 @@ const Home = () => {
             </motion.div>
           </div>
 
+    
+
+    {/* Car Image Section */}
           <motion.div
             className="relative w-full md:w-1/2"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -161,25 +201,61 @@ const Home = () => {
           </motion.div>
         </div>
 
+        {/* Feature Slider Section */}
+
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20"
           variants={fadeInUp}
+          className="mb-16 relative overflow-hidden rounded-2xl shadow-xl mt-16"
         >
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              variants={fadeInUp}
-              className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-            >
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="p-3 bg-blue-50 rounded-full text-blue-600">
-                  {feature.icon}
+          <div className="relative h-64 md:h-80">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide}
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.5 }}
+                className={`absolute inset-0 bg-gradient-to-r ${featureSlides[currentSlide].bgColor} flex items-center p-8 md:p-12`}
+              >
+                <div className="flex flex-col md:flex-row items-center md:items-start justify-between w-full">
+                  <div className="text-white text-center md:text-left md:max-w-2xl space-y-4">
+                    <h2 className="text-3xl md:text-4xl font-bold">{featureSlides[currentSlide].title}</h2>
+                    <p className="text-lg md:text-xl opacity-90">{featureSlides[currentSlide].description}</p>
+                  </div>
+                  <div className="mt-6 md:mt-0 text-white">
+                    {featureSlides[currentSlide].icon}
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800">{feature.text}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Slider Controls */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {featureSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === currentSlide ? "bg-white w-6" : "bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+            
+            <button
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 rounded-full p-2 text-white"
+            >
+              <FiChevronLeft size={24} />
+            </button>
+            
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 rounded-full p-2 text-white"
+            >
+              <FiChevronRight size={24} />
+            </button>
+          </div>
         </motion.div>
 
         <motion.div 
