@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { RentContext } from "../Context/Context";
 import { motion, AnimatePresence } from "framer-motion";
 import { BiLogOutCircle, BiTimeFive, BiCar, BiDollar, BiTrash } from "react-icons/bi";
@@ -12,6 +12,7 @@ import { useRentManagement } from '../Hooks/useRentManagement';
 
 const RentDetails = () => {
   const { rentDetails, setRentDetails, totalrent, settotalrent } = useContext(RentContext);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const {
@@ -32,6 +33,37 @@ const RentDetails = () => {
 
   const timeLeft = useRentTimer(rentDetails, handleDelete);
 
+  // Fetch rent details from backend
+  useEffect(() => {
+    const fetchRentDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5173/details'); 
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch rent details');
+        }
+        
+        const data = await response.json();
+        setRentDetails(data);
+        
+        // Calculate total rent
+        const total = data.reduce((sum, car) => {
+          return sum + (car.hourlyPrice * (car.hours || 0));
+        }, 0);
+        
+        settotalrent(total);
+      } catch (error) {
+        console.error('Error fetching rent details:', error);
+        toast.error('Failed to load rent details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRentDetails();
+  }, [setRentDetails, settotalrent]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -49,7 +81,6 @@ const RentDetails = () => {
     }
   };
   
-
   return (
     <div id="details" className="bg-gray-100 min-h-screen">
       <ToastContainer />
@@ -77,24 +108,31 @@ const RentDetails = () => {
         </div>
 
         <motion.div variants={itemVariants} className="mb-5">
-          <span className="font-bold">Note : </span>
+          <span className="font-bold">Note : </span> 
           <span>Your renting request will be pending until approved by an administrator. Once approved, your rental will be valid for 24 hours.</span>
         </motion.div>
 
-        <AnimatePresence>
-          {rentDetails && rentDetails.length > 0 ? (
-            <RentList 
-              rentDetails={rentDetails}
-              handleDelete={handleDelete}
-              handleProceed={handleProceed}
-              timeLeft={timeLeft}
-              itemVariants={itemVariants}
-              containerVariants={containerVariants}
-            />
-          ) : (
-            <p className="text-center text-lg">No items in your rent details yet!</p>
-          )}
-        </AnimatePresence>
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <p className="text-lg">Loading rent details...</p>
+          </div>
+        ) : (
+          <AnimatePresence>
+            {rentDetails && rentDetails.length > 0 ? (
+              <RentList 
+                rentDetails={rentDetails}
+                handleDelete={handleDelete}
+                handleProceed={handleProceed}
+                timeLeft={timeLeft}
+                itemVariants={itemVariants}
+                containerVariants={containerVariants}
+                setRentDetails={setRentDetails}
+              />
+            ) : (
+              <p className="text-center text-lg">No items in your rent details yet!</p>
+            )}
+          </AnimatePresence>
+        )}
 
         <RentModal 
           isOpen={isModalOpen}
@@ -114,17 +152,18 @@ const RentDetails = () => {
   );
 };
 
-const RentList = ({ rentDetails, handleDelete, handleProceed, timeLeft, itemVariants, containerVariants }) => (
+const RentList = ({ rentDetails, handleDelete, handleProceed, timeLeft, itemVariants, containerVariants, setRentDetails }) => (
   <motion.ul variants={containerVariants}>
     {rentDetails.map((car, i) => (
       <RentItem 
-        key={i}
+        key={car._id || i}
         car={car}
         index={i}
         handleDelete={handleDelete}
         handleProceed={handleProceed}
         timeRemaining={timeLeft[i]}
         itemVariants={itemVariants}
+        setRentDetails={setRentDetails}
       />
     ))}
   </motion.ul>
@@ -157,15 +196,50 @@ const StatusBadge = ({ status }) => {
   }
 };
 
-const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, itemVariants }) => {
-  // Determine if we should show rental timer
+const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, itemVariants, setRentDetails }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
   const showTimer = car.rented && car.status === "approved" && timeRemaining;
-  
-  // Determine if we should show rental actions
   const showRentActions = !car.rented;
-  
-  // Check if car has been requested but not yet approved/rejected
   const isPending = car.rented && car.status === "pending";
+
+  const handleApproveReject = async (action) => {
+    try {
+      setIsUpdating(true);
+
+      const response = await fetch(`http://localhost:5173/details/${action}/${car._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Include rejection reason if rejecting
+        body: JSON.stringify(action === "reject" ? { 
+          rejectionReason: "Administrator rejected this request" 
+        } : {}),
+      });
+    
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} car rental`);
+      }
+    
+      // Extract the updated car from the response
+      const responseData = await response.json();
+      const updatedCar = responseData.data;
+    
+      // Update the rentDetails state with the updated car
+      setRentDetails((prevDetails) =>
+        prevDetails.map((item) =>
+          item._id === car._id ? updatedCar : item
+        )
+      );
+    
+      toast.success(responseData.message || `Car rental request ${action === "accept" ? "approved" : "rejected"} successfully`);
+    } catch (error) {
+      console.error(`Error ${action}ing car rental:`, error);
+      toast.error(`Failed to ${action} car rental request`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <motion.div
@@ -195,7 +269,7 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
           </p>
           {car.hours && (
             <>
-              <p className="text-lg font-semibold text-green-700 flex items-center gap-2">
+             <p className="text-lg font-semibold text-green-700 flex items-center gap-2">
                 <FaHourglassHalf /> Hours: {car.hours}
               </p>
               <p className="text-lg font-bold text-indigo-700 flex items-center gap-2">
@@ -229,6 +303,7 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
             whileTap={{ scale: 0.9 }}
             className="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-500 mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2"
             onClick={() => handleDelete(index)}
+            disabled={isUpdating}
           >
             <BiTrash /> Delete
           </motion.button>
@@ -239,9 +314,33 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
               whileTap={{ scale: 0.9 }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2"
               onClick={() => handleProceed(car)}
+              disabled={isUpdating}
             >
               <BiTimeFive /> Request Rental
             </motion.button>
+          )}
+          
+          {car.rented && car.status === "pending" && (
+            <div className="flex mt-4 sm:mt-0 sm:ml-4">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mr-2 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => handleApproveReject("accept")}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'Processing...' : 'Accept'}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`bg-red-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-500 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => handleApproveReject("reject")}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'Processing...' : 'Reject'}
+              </motion.button>
+            </div>
           )}
         </div>
       </div>
@@ -265,7 +364,7 @@ const RentModal = ({
   <AnimatePresence>
     {isOpen && (
       <motion.div
-        className="fixed top-0 left-0 right-0 bottom-0 flex justify-center items-center bg-gray-900 bg-opacity-50"
+        className="fixed top-0 left-0 right-0 bottom-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
