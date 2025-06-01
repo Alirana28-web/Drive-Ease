@@ -4,9 +4,9 @@ import dayjs from 'dayjs';
 export const useRentTimer = (rentDetails, handleDelete) => {
   const [timeLeft, setTimeLeft] = useState({});
 
-  const calculateRemainingTime = (timestamp) => {
+  const calculateRemainingTime = (startTime, rentalDuration) => {
     const now = dayjs();
-    const expiration = dayjs(timestamp).add(24, "hours");
+    const expiration = dayjs(startTime).add(rentalDuration, "hour");
     const diff = expiration.diff(now, "second");
     if (diff <= 0) return null;
 
@@ -21,12 +21,12 @@ export const useRentTimer = (rentDetails, handleDelete) => {
     const interval = setInterval(() => {
       const updatedTimeLeft = {};
       rentDetails.forEach((car, index) => {
-        if (car.rented && car.rentedAt) {
-          const remaining = calculateRemainingTime(car.rentedAt);
+        if (car.rented && car.rentedAt && car.totalHours) {
+          const remaining = calculateRemainingTime(car.rentedAt, car.totalHours); 
           if (remaining) {
             updatedTimeLeft[index] = remaining;
           } else {
-            handleDelete(index, true);
+            handleDelete(index, true); 
           }
         }
       });

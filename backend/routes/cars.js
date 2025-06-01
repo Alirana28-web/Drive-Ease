@@ -5,15 +5,15 @@ const Cars = require("../Schemas/Cars");
 const sendConfirmationEmail = require("../email");
 
 router.post("/details", async (req, res) => {
-  const { car, renterEmail,address, renterName, totalRent, totalHours } = req.body;
-  if (!car || !renterEmail || !address|| !renterName || !totalRent || !totalHours) {
+  const { car, renterPhone,address, renterName, totalRent, totalHours } = req.body;
+  if (!car || !renterPhone || !address|| !renterName || !totalRent || !totalHours) {
     return res.status(400).json({ error: "All fields are required" });
   }
   
   try {
     const newCar = new Cars({ 
       ...car, 
-      renterEmail, 
+      renterPhone, 
       renterName, 
       address,
       totalRent, 
@@ -21,7 +21,7 @@ router.post("/details", async (req, res) => {
       rentedAt: new Date() 
     });
     const savedCar = await newCar.save();
-    await sendConfirmationEmail(renterEmail, renterName, car, totalRent, totalHours);
+    await sendConfirmationEmail(renterPhone, renterName, car, totalRent, totalHours);
     
     res.status(201).json({ message: "Car details saved and email sent", data: savedCar });
   } catch (error) {

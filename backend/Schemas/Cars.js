@@ -6,7 +6,7 @@ const carSchema = new mongoose.Schema({
   hourlyPrice: { type: Number, required: true },
   category: { type: String, required: true },
   rentedAt: { type: Date },
-  renterEmail: { type: String, required: true },
+  renterPhone: { type: String, required: true },
   totalHours: { type: Number, required: true },
   totalRent: { type: Number, required: true },
   rented: { type: Boolean, default: false },

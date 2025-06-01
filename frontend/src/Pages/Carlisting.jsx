@@ -178,9 +178,9 @@ const Carlisting = () => {
               >
               Available Cars
             </motion.h1>
-              <p>*You can only select 3 cars at a time</p>
+              <p>*You can only select 1 car at a time</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2  lg:grid-cols-3 gap-6 ">
+            <div className=" grid grid-cols-1 sm:grid-cols-2  lg:grid-cols-3 gap-9 ">
               {filteredCars.map((car, index) => (
                 <motion.div
                   key={index}
@@ -189,18 +189,13 @@ const Carlisting = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <div className="relative">
-                  <img
-  src={car.imageUrl}
-  alt={car.name}
-  className="w-80  h-48 sm:h-60 md:h-64 lg:h-72 object-cover p-10 sm:p-6 md:p-8 mx-auto max-w-xs sm:max-w-sm md:max-w-md"
-/>
-                    <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md">
-                      <div className="flex items-center gap-1">
-                        <FiClock className="text-blue-600" />
-                        <span className="text-sm font-semibold">Hourly</span>
-                      </div>
-                    </div>
+                 <div className="w-full flex justify-center">
+  <img
+    src={car.imageUrl}
+    alt={car.name}
+    className="w-full max-w-lg object-cover py-10"
+  />
+              
                   </div>
 
                   <div className="p-6">
@@ -233,7 +228,7 @@ const Carlisting = () => {
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
                         onClick={() => handleRentNow(car)}
-                        disabled={rentDetails.length === 3}
+                        disabled={rentDetails.length === 1}
                       >
                         <BsFillCarFrontFill />
                         Rent Now

@@ -7,8 +7,8 @@ import { MdPending } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { useRentTimer } from '../Hooks/useRentTimer';
-import { useRentManagement } from '../Hooks/useRentManagement';
+import { useRentTimer } from '../RentHooks/useRentTimer';
+import { useRentManagement } from '../RentHooks/useRentManagement';
 
 const RentDetails = () => {
   const { rentDetails, setRentDetails, totalrent, settotalrent } = useContext(RentContext);
@@ -24,14 +24,14 @@ const RentDetails = () => {
     address,
     setaddress,
     setRenterName,
-    renterEmail,
-    setRenterEmail,
+    renterPhone,
+    setrenterPhone,
     handleDelete,
     handleProceed,
     handleConfirm,
   } = useRentManagement(rentDetails, setRentDetails, totalrent, settotalrent);
 
-  const timeLeft = useRentTimer(rentDetails, handleDelete);
+  const timeLeft = useRentTimer(rentDetails, handleDelete) || [];
 
   // Fetch rent details from backend
   useEffect(() => {
@@ -55,7 +55,7 @@ const RentDetails = () => {
         settotalrent(total);
       } catch (error) {
         console.error('Error fetching rent details:', error);
-        toast.error('Failed to load rent details');
+        // toast.error('Failed to load rent details');
       } finally {
         setLoading(false);
       }
@@ -143,8 +143,8 @@ const RentDetails = () => {
           setSelectedHours={setSelectedHours}
           renterName={renterName}
           setRenterName={setRenterName}
-          renterEmail={renterEmail}
-          setRenterEmail={setRenterEmail}
+          renterPhone={renterPhone}
+          setrenterPhone={setrenterPhone}
           handleConfirm={handleConfirm}
         />
       </motion.div>
@@ -161,7 +161,7 @@ const RentList = ({ rentDetails, handleDelete, handleProceed, timeLeft, itemVari
         index={i}
         handleDelete={handleDelete}
         handleProceed={handleProceed}
-        timeRemaining={timeLeft[i]}
+        timeRemaining={timeLeft[i] || { hours: 0, minutes: 0, seconds: 0 }}
         itemVariants={itemVariants}
         setRentDetails={setRentDetails}
       />
@@ -203,43 +203,41 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
   const isPending = car.rented && car.status === "pending";
 
   const handleApproveReject = async (action) => {
-    try {
-      setIsUpdating(true);
+      try {
+        setIsUpdating(true);
+  
+        const response = await fetch(`http://localhost:5173/details/${action}/${car._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
 
-      const response = await fetch(`http://localhost:5173/details/${action}/${car._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Include rejection reason if rejecting
-        body: JSON.stringify(action === "reject" ? { 
-          rejectionReason: "Administrator rejected this request" 
-        } : {}),
-      });
-    
-      if (!response.ok) {
-        throw new Error(`Failed to ${action} car rental`);
+          body: JSON.stringify(action === "reject" ? { 
+            rejectionReason: "Administrator rejected this request" 
+          } : {}),
+        });
+      
+        if (!response.ok) {
+          throw new Error(`Failed to ${action} car rental`);
+        }
+      
+        // Extract the updated car from the response
+        const responseData = await response.json();
+        const updatedCar = responseData.data;
+      
+        // Fetch the updated rent details from the backend to ensure consistency
+        const updatedRentDetailsResponse = await fetch('http://localhost:5173/details');
+        const updatedRentDetails = await updatedRentDetailsResponse.json();
+        setRentDetails(updatedRentDetails);
+      
+        toast.success(responseData.message || `Car rental request ${action === "accept" ? "approved" : "rejected"} successfully`);
+      } catch (error) {
+        console.error(`Error ${action}ing car rental:`, error);
+        toast.error(`Failed to ${action} car rental request`);
+      } finally {
+        setIsUpdating(false);
       }
-    
-      // Extract the updated car from the response
-      const responseData = await response.json();
-      const updatedCar = responseData.data;
-    
-      // Update the rentDetails state with the updated car
-      setRentDetails((prevDetails) =>
-        prevDetails.map((item) =>
-          item._id === car._id ? updatedCar : item
-        )
-      );
-    
-      toast.success(responseData.message || `Car rental request ${action === "accept" ? "approved" : "rejected"} successfully`);
-    } catch (error) {
-      console.error(`Error ${action}ing car rental:`, error);
-      toast.error(`Failed to ${action} car rental request`);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+    };
 
   return (
     <motion.div
@@ -257,8 +255,10 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
           <h3 className="text-lg font-bold flex items-center gap-2">
             <BiCar className="text-blue-600" /> {car.name}
           </h3>
-          {car.rented && (
-            <StatusBadge status={car.status || "pending"} />
+          {car.rented ? (
+            <StatusBadge status={car.status} />
+          ) : (
+            <StatusBadge status="pending" />
           )}
         </div>
         <p className="text-sm text-gray-600 mb-2">{car.description} {car.category}</p>
@@ -321,27 +321,29 @@ const RentItem = ({ car, index, handleDelete, handleProceed, timeRemaining, item
           )}
           
           {car.rented && car.status === "pending" && (
-            <div className="flex mt-4 sm:mt-0 sm:ml-4">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mr-2 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleApproveReject("accept")}
-                disabled={isUpdating}
-              >
-                {isUpdating ? 'Processing...' : 'Accept'}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`bg-red-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-500 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleApproveReject("reject")}
-                disabled={isUpdating}
-              >
-                {isUpdating ? 'Processing...' : 'Reject'}
-              </motion.button>
-            </div>
-          )}
+  <div className="flex mt-4 sm:mt-0 sm:ml-4">
+    <motion.button
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      className={`bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-500 mr-2 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={() => handleApproveReject("accept")}
+      disabled={isUpdating}
+    >
+      <FaCheckCircle /> Approve
+    </motion.button>
+    
+    <motion.button
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      className={`bg-red-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-500 flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={() => handleApproveReject("reject")}
+      disabled={isUpdating}
+    >
+      <FaTimesCircle /> Reject
+    </motion.button>
+  </div>
+)}
+
         </div>
       </div>
     </motion.div>
@@ -357,8 +359,8 @@ const RentModal = ({
   setSelectedHours,
   renterName,
   setRenterName,
-  renterEmail,
-  setRenterEmail,
+  renterPhone,
+  setrenterPhone,
   handleConfirm
 }) => (
   <AnimatePresence>
@@ -391,12 +393,12 @@ const RentModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm">Email</label>
+              <label className="block text-sm">Phone</label>
               <input
-                type="email"
-                value={renterEmail}
-                placeholder="alimahmood@gmail.com"
-                onChange={(e) => setRenterEmail(e.target.value)}
+                type="tel"
+                value={renterPhone}
+                placeholder="+92 318-2321921"
+                onChange={(e) => setrenterPhone(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               />
             </div>

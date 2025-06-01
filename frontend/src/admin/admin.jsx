@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Car, RefreshCcw, X, LogOut, RefreshCw, CheckCircle, XCircle, HomeIcon, Trash2 } from "lucide-react";
-import { MdEmail } from "react-icons/md";
+import { Calendar, Car, LogOut, RefreshCw, CheckCircle, XCircle, HomeIcon, Trash2 } from "lucide-react";
+import { MdPhoneAndroid } from "react-icons/md";
 import { BsPerson } from "react-icons/bs";
 import { RentContext } from "../Context/Context";
 import { useNavigate } from "react-router-dom";
@@ -55,8 +55,6 @@ const Admin = () => {
     checkAuth();
   }, [login, navigate, setlogin]);
 
-
-  // Fetch data from the server
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -97,7 +95,6 @@ const Admin = () => {
     fetchData();
   }, [refreshKey]);
 
-  //logout function
   const handleLogout = () => {
     setlogin(false);
     localStorage.removeItem("token");
@@ -105,12 +102,10 @@ const Admin = () => {
     navigate("/login");
   };
 
-  //refresh function
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
 
-  //accept function
   const handleAccept = async (carId) => {
     try {
       setIsLoading(true);
@@ -133,13 +128,11 @@ const Admin = () => {
     setIsRejectionModalOpen(true);
   };
 
-  //open delete confirmation modal
   const openDeleteModal = (car) => {
     setCarToDelete(car);
     setIsDeleteModalOpen(true);
   };
 
-  //deletion function
   const handleDelete = async () => {
     if (!carToDelete || !carToDelete._id) return; 
 
@@ -158,10 +151,8 @@ const Admin = () => {
     } finally {
         setIsLoading(false);
     }
-};
+  };
 
-
-  //rejection
   const handleReject = async () => {
     if (!selectedCarId) return;
     
@@ -186,7 +177,6 @@ const Admin = () => {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <ToastContainer />
-      {/* Sidebar */}
       <motion.div
         initial={{ x: -50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -283,7 +273,7 @@ const Admin = () => {
                   placeholder="Please provide a reason for rejecting this rental request..."
                 ></textarea>
               </div>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-wrap justify-end space-x-3">
                 <button
                   onClick={() => setIsRejectionModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
@@ -321,7 +311,7 @@ const Admin = () => {
               <p className="mb-6">
                 Are you sure you want to delete <span className="font-bold">{carToDelete?.name}</span>? This action cannot be undone.
               </p>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-wrap justify-end space-x-3">
                 <button
                   onClick={() => setIsDeleteModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
@@ -364,8 +354,8 @@ const CarsList = ({ data, onAccept, onReject, onDelete }) => (
                 <span className="font-medium">{item.renterName}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <MdEmail className="text-indigo-600" size={20} />
-                <span>{item.renterEmail}</span>
+                <MdPhoneAndroid className="text-indigo-600" size={20} />
+                <span>{item.renterPhone}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <BiMoney className="text-indigo-600" size={20} />
@@ -389,10 +379,10 @@ const CarsList = ({ data, onAccept, onReject, onDelete }) => (
               </div>
             </div>
             
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex flex-wrap items-center gap-2 mt-4">
               <StatusBadge status={item.status} />
               
-              <div className="flex gap-2 ml-auto">
+              <div className="flex flex-wrap gap-2 ml-auto">
                 {item.status === "pending" && (
                   <>
                     <motion.button
