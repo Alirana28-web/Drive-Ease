@@ -1,17 +1,13 @@
 {
   "name": "rental",
   "version": "1.0.0",
-  "main": "index.ejs",
+  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "client": "cd client && npm start",
-    "server": "nodemon server.js",
-    "build": "cd client && npm run build",
-    "install-client": "cd client && npm install",
-    "heroku-postbuild": "npm run install-client && npm run build",
-    "dev-concurrent": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
@@ -48,5 +44,8 @@
     "react-scroll": "^1.9.0",
     "react-xarrows": "^2.0.2",
     "toastify": "^2.0.1"
+  },
+  "devDependencies": {
+    "vite": "^6.0.5"
   }
 }

@@ -9,7 +9,7 @@ import Testimonials from "./Pages/Testimonials";
 import Contact from "./Pages/Contact";
 import Footer from "./components/Footer";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import RentDetails from "./pages/RentDetails";
+import RentDetails from "./Pages/RentDetails";
 
 import Login from "./Login/Login";
 import Signup from "./Login/Signup";
